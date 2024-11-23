@@ -1,0 +1,380 @@
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reset.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/theme/simple.min.css"
+      id="theme"
+    />
+    <link rel="stylesheet" href="highlight-phpstorm-light-theme.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Roboto+Mono&family=Roboto:wght@400;700&display=swap"
+    />
+    <style>
+      :root {
+        --r-main-font: 'Roboto', 'Noto Color Emoji', sans-serif;
+        --r-heading-font: 'Roboto', 'Noto Color Emoji', sans-serif;
+        --r-code-font: 'Roboto Mono', 'Noto Color Emoji', monospace;
+        --r-block-margin: 10px;
+      }
+      .reveal pre {
+        font-size: 0.5em;
+      }
+      .nohighlight {
+        padding: 1em !important;
+      }
+
+      td.hljs-ln-code {
+        white-space: pre;
+      }
+      .reveal h1,
+      .reveal h2,
+      .reveal h3,
+      .reveal h4,
+      .reveal h5,
+      .reveal h6,
+      .reveal pre,
+      .reveal p,
+      .reveal img {
+        margin: 0 var(--r-block-margin) calc(var(--r-block-margin) * 2);
+      }
+      .reveal pre {
+        width: auto;
+      }
+
+      .reveal .r-stack > * {
+        margin: 0;
+      }
+      .horizontal {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+      }
+      .horizontal > * {
+        flex-grow: 1;
+      }
+      .horizontal-half > * {
+        flex-grow: 0 !important;
+        width: calc(50% - var(--r-block-margin) * 2) !important;
+      }
+
+      p {
+        font-size: 35px;
+      }
+    </style>
+    <title>Исключения</title>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h2>Тестирование зависимостей</h2>
+        </section>
+
+        <section>
+          <p>
+            Очень часто наш код (функция, модуль) имеют внешние зависимости.
+            Внешняя зависимость — это все, что делает ваши тесты не правдивыми и
+            сложно-поддерживаемыми. Файловая система — зависимость: структура
+            каталогов может быть другой на другой машине. База данных —
+            зависимость, ее может не быть на другой машине. Веб-сервис —
+            зависимость: может не быть интернета или может присутствовать
+            фаервол и.т.д
+          </p>
+        </section>
+
+        <section>
+          <h3>Определение Stub</h3>
+          <p>
+            Стабы (англ. stub) заменяют объекты, но сами ничего не проверяют. Их
+            реализация простая, а зачастую — даже ничего не делает вовсе. Стабы
+            нужны, чтобы заменить собой зависимость в системе и упростить
+            окружение для тестов. Задача стаба — избавить нас от подготовки и
+            работы с настоящей зависимостью. Это экономит время, когда
+            тестируемая функция зависит от сложных настраиваемых объектов.
+          </p>
+        </section>
+
+        <section>
+          <h3>Определение Mock</h3>
+          <p>
+            Моки (англ. mock) тоже заменяют зависимости, но при этом позволяют
+            проверять предположения. Они могут следить за вызовами методов,
+            аргументами этих вызовов и т. д. Моки удобны при тестировании
+            функций с побочными эффектами.
+          </p>
+        </section>
+
+        <section>
+          <img src="img/mock.webp" alt="" />
+        </section>
+
+        <section>
+          <h3>Пример класса</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              class MyClass {
+                protected function showWord($word) { /* отображает указанное слово на абстрактном устройстве */ }
+                protected function getTemperature() { /* обращение к датчику температуры */ }
+                public getWord($temparature) {
+                    $temperature = (int)$temparature;
+                    if ($temperature < 15) { return 'cold'; }
+                    if ($temperature > 25) { return 'hot'; }
+                    return 'warm';
+                }
+                public function process() {
+                    $temperature = $this->getTemperature();
+                    $word = $this->getWord($temperature);
+                    $this->showWord($word);
+                }
+            }
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Пример мока</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              class MyClassTest extends PHPUnit_Framework_TestCase {
+                public function test_process() {
+                    $mock = $this->getMock('MyClass');
+            
+                    // проверяем, что в $mock находится экземпляр класса MyClass
+                    $this->assertInstanceOf('MyClass', $mock);
+                }
+            }
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Функция мока</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              public function getMock(
+                  $originalClassName, // название оригинального класса, для которого будет создан Mock объект
+                  $methods = array(), // в этом массиве можно указать какие именно методы будут подменены
+                  array $arguments = array(), // аргументы, передаваемые в конструктор
+                  $mockClassName = '', // можно указать имя Mock класса
+                  $callOriginalConstructor = true, // отключение вызова __construct()
+                  $callOriginalClone = true, // отключение вызова __clone()
+                  $callAutoload = true // отключение вызова __autoload()
+              );
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              $mock = $this->getMockBuilder('MyClass')
+                ->setMethods(null)
+                ->setConstructorArgs(array())
+                ->setMockClassName('')
+                // отключив вызов конструктора, можно получить Mock объект "одиночки"
+                ->disableOriginalConstructor()
+                ->disableOriginalClone()
+                ->disableAutoload()
+                ->getMock();
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              public function testProcess() {
+                $mock = $this->getMock('MyClass', array('getTemperature', 'getWord', 'showWord'));
+                $mock->expects($this->once())->method('getTemperature');
+                $mock->expects($this->once())->method('showWord');
+                $mock->expects($this->once())->method('getWord');
+                $mock->process();
+              }
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <p>
+            Результат выполнения этого теста будет успешным, если при вызове
+            метода process() произойдет однократный вызов трех перечисленных
+            методов: getTemperature(), getWord(), showWord().
+          </p>
+        </section>
+
+        <section>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              any() - возвращает значение, которое соответствует, когда метод, для которого он оценивается, выполняется ноль или более раз
+              never() - возвращает значение, которое соответствует, когда метод, для которого он оценивается, никогда не выполняется
+              atLeastOnce() - возвращает значение, которое соответствует, когда метод, для которого он оценивается, выполняется хотя бы один раз
+              once() - возвращает значение, которое соответствует, когда метод, для которого он оценивается, выполняется ровно один раз
+              atMost(int $count) - возвращает значение, которое соответствует, когда метод, для которого он оценивается, выполняется в большинстве $countслучаев
+              exactly(int $count) - возвращает значение, которое соответствует, когда метод, для которого он оценивается, выполняется ровно $countраз
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Проверка указанных аргументов</h3>
+          <p>
+            Еще одной полезной для тестирования возможностью Mock объектов
+            является проверка аргументов, указанных при вызове подмененного
+            метода, при помощи конструкции with():
+          </p>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              public function testWithAndWillUsage() {
+                $mock = $this->getMock('MyClass', array('getWord'));
+                $mock->expects($this->once())
+                    ->method('getWord')
+                    ->with($this->greaterThan(25))
+                    ->will($this->returnValue('hot'));
+                $this->assertEquals('hot', $mock->getWord(30));
+              }
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <p>
+            В качестве аргументов with() может принимать все те же конструкции,
+            что и проверка assertThat(); Их малая часть:
+            <ul>
+              <li>attribute()</li>
+              <li>anything()</li>
+              <li>arrayHasKey()</li>
+              <li>contains()</li>
+              <li>equalTo()</li>
+              <li>attributeEqualTo()</li>
+              <li>fileExists()</li>
+              </ul>
+          </p>
+        </section>
+
+        <section>
+          <h3>Ещё пример Mock</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              public function test_process($temperature) {
+                $mock = $this->getMock('MyClass', array('getTemperature', 'getWord', 'showWord'));
+            
+                // метод getTemperature() вернет значение $temperature
+                $mock->expects($this->once())->method('getTemperature')->will($this->returnValue($temperature));
+            
+                $mock->process();
+              }
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Возможные значения для will</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              returnValue($value) — возвращает $value;
+              returnArgument($index) — возвращает аргумент с номером $index, указанный при вызове метода;
+              returnSelf() — возвращает указатель на самого себя, полезно для тестирования цепочечных методов;
+              returnValueMap($map) — используется для возвращения результата на основе определенных наборов аргументов;
+              returnCallback($callback) — передает аргументы в указанную функцию и возвращает ее результат;
+              onConsecutiveCalls() — последовательно возвращает один из перечисленных аргументов при каждом следующем вызове метода;
+              throwException($exception) — бросает указанное исключение.
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Библиотека для тестирования бд</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              composer require --dev phpunit/dbunit
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Пример Мока БД</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+              class DatabaseServiceTest extends TestCase
+              {
+                  public function testGetUserById()
+                  {
+                      // Create a mock dataset
+                      $data = [
+                          'users' => [
+                              ['id' => 1, 'name' => 'John Doe', 'email' => 'john@example.com'],
+                              ['id' => 2, 'name' => 'Jane Smith', 'email' => 'jane@example.com'],
+                          ]
+                      ];
+                      $mockDataSet = new MockDataSet($data);
+                    
+                      $mockConnection = $this->getMockBuilder(\PDO::class)
+                                            ->disableOriginalConstructor()
+                                            ->getMock();
+                      $mockConnection->method('query')
+                                    ->willReturn($mockDataSet->getTable('users'));
+                      
+                      $databaseService = new DatabaseService($mockConnection);
+                      $user = $databaseService->getUserById(1);
+                      $this->assertEquals('John Doe', $user['name']);
+                      $this->assertEquals('john@example.com', $user['email']);
+                  }
+              }
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h3>Пример Stub</h3>
+          <pre>
+            <code class="language-php" data-trim data-line-numbers="">
+                    final class SomeClassTest extends TestCase
+                    {
+                        public function testDoesSomething(): void
+                        {
+                            $sut = new SomeClass();
+
+                            // Create a test stub for the Dependency interface
+                            $dependency = $this->createStub(Dependency::class);
+
+                            // Configure the test stub
+                            $dependency->method('doSomething')
+                                ->willReturn('foo');
+
+                            $result = $sut->doSomething($dependency);
+
+                            $this->assertStringEndsWith('foo', $result);
+                        }
+                    }
+            </code>
+          </pre>
+        </section>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/highlight.min.js"></script>
+    <script>
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        plugins: [RevealHighlight],
+        slideNumber: true,
+        autoAnimate: true,
+      });
+    </script>
+  </body>
+</html>
